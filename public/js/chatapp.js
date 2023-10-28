@@ -64,7 +64,7 @@ async function getmessages(){
 }
 window.addEventListener("DOMContentLoaded",async()=>{
     const token=localStorage.getItem('token');
-    // const allMsgs=await axios.get(`http://localhost:3100/message/get-message?lastMsgID=0`);
+    // const allMsgs=await axios.get(`http://13.49.238.207:3100/message/get-message?lastMsgID=0`);
     // const msgString=JSON.stringify(allMsgs.data.messageData);
     // localStorage.setItem('msgs',msgString);
     // for(var i=0;i<allMsgs.data.messageData.length;i++)
