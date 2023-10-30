@@ -1,3 +1,4 @@
+require('dotenv').config();
 const path = require('path');
 const cors = require('cors');
 const express = require('express');
@@ -6,17 +7,25 @@ const sequelize=require('./util/database');
 const helmet=require('helmet');
 const morgan=require('morgan');
 const fs=require('fs');
+const socketio=require('socket.io');
+const http=require('http');
 
 const userRoute=require('./routes/user');
 const messageRoute=require('./routes/message');
 const groupRoute=require('./routes/group');
+const passwordRoute=require('./routes/password');
+const fileRoute=require('./routes/files');
 
 const User=require('./models/user');
 const Message=require('./models/message');
 const Group=require('./models/group');
 const UserGroup=require('./models/userGroup');
+const forgotpassword=require('./models/forgotpwdreq');
+const files=require('./models/files');
 
 const app = express();
+const server = http.createServer(app);
+const io = socketio(server);
 
 const accessLogStream=fs.createWriteStream(path.join(__dirname,'access.log'),{flags:'a'});
 
@@ -35,6 +44,8 @@ app.use(bodyParser.json());
 app.use('/user',userRoute);
 app.use('/message',messageRoute);
 app.use('/group',groupRoute);
+app.use('/password',passwordRoute); 
+app.use('/file',fileRoute);
 
 app.use((req,res)=>{
     res.sendFile(path.join(__dirname,`public/${req.url}`));
@@ -53,5 +64,18 @@ Group.belongsToMany(User,{through:UserGroup});
 sequelize
         .sync()
     // .sync({force:true})
-    .then(()=>app.listen(3100))
+    .then(()=>{
+      server.listen(process.env.PORT);
+      
+      io.on('connection', socket => {
+        socket.on('new-user', data => {
+          io.emit('user-connected', data);
+        })
+        socket.on('send-chat-message', data => {
+          socket.broadcast.emit('chat-message', data);
+        })
+      }) 
+    })
     .catch(err=>console.log(err));  
+     
+    

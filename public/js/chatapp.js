@@ -3,14 +3,26 @@ const groupList=document.getElementById('groupList');
 const memberList=document.getElementById('memberList');
 const addGroupBtn=document.getElementById('groupBtn');
 const messageInput=document.getElementById('Dataform');
+const fileInput=document.getElementById('fileform');
 const addGroupDisplay=document.getElementById('addgrp');
 
+const socket=io('http://localhost:3100');
+
+socket.on('chat-message', data => {
+    const gId=localStorage.getItem('groupId');
+    if(data.groupId===gId)
+        showmsg(data);
+  })
+  
+  socket.on('user-connected', data => {
+        showmsg(data);
+  })
 addGroupBtn.addEventListener('click',()=>{
     addGroupDisplay.style.display='block'
 });
 
 addGroupDisplay.addEventListener('submit',AddGroup);
-
+fileInput.addEventListener('submit',uploadfiles);
 messageInput.addEventListener('submit',formSubmit);
 
 function parseJwt (token) {
@@ -23,59 +35,54 @@ function parseJwt (token) {
     return JSON.parse(jsonPayload);
 }
 
-async function getmessages(){
-    try{
+// async function getmessages(){
+//     try{
         
-        const token=localStorage.getItem('token');
-        const msgarray=localStorage.getItem('msgs');
-        const parsedMsgs=JSON.parse(msgarray);
-        while(parsedMsgs!=null && parsedMsgs.length>10){
-            parsedMsgs.shift();
-        }
-        let mergedArrays;
-        let msgId=-1;
-        if(parsedMsgs.length>0){  
-            parsedMsgs.forEach(element => {
-                msgId=element.id;
-             }); 
-        } 
-        const allMsgs=await axios.get(`http://localhost:3100/message/get-message?lastMsgID=${msgId}`);
-        if(parsedMsgs.length>0 && allMsgs.data.messageData.length>0){
-            mergedArrays=parsedMsgs.concat(allMsgs.data.messageData);
-        }
-        else if(parsedMsgs.length==0 && allMsgs.data.messageData.length>0){
-            mergedArrays=allMsgs.data.messageData;
-        }
-        else if(parsedMsgs.length>0 && allMsgs.data.messageData.length==0){
-            mergedArrays=parsedMsgs;
-        }
-        else{
-            mergedArrays=[];
-        }
-        const msgString=JSON.stringify(mergedArrays);
-        localStorage.setItem('msgs',msgString);
-        for(var i=0;i<allMsgs.data.messageData.length;i++)
-            await showmsg(allMsgs.data.messageData[i]);
+//         const token=localStorage.getItem('token');
+//         const msgarray=localStorage.getItem('msgs');
+//         const parsedMsgs=JSON.parse(msgarray);
+//         while(parsedMsgs!=null && parsedMsgs.length>10){
+//             parsedMsgs.shift();
+//         }
+//         let mergedArrays;
+//         let msgId=-1;
+//         if(parsedMsgs.length>0){  
+//             parsedMsgs.forEach(element => {
+//                 msgId=element.id;
+//              }); 
+//         } 
+//         const allMsgs=await axios.get(`http://localhost:3100/message/get-message?lastMsgID=${msgId}`);
+//         if(parsedMsgs.length>0 && allMsgs.data.messageData.length>0){
+//             mergedArrays=parsedMsgs.concat(allMsgs.data.messageData);
+//         }
+//         else if(parsedMsgs.length==0 && allMsgs.data.messageData.length>0){
+//             mergedArrays=allMsgs.data.messageData;
+//         }
+//         else if(parsedMsgs.length>0 && allMsgs.data.messageData.length==0){
+//             mergedArrays=parsedMsgs;
+//         }
+//         else{
+//             mergedArrays=[];
+//         }
+//         const msgString=JSON.stringify(mergedArrays);
+//         localStorage.setItem('msgs',msgString);
+//         for(var i=0;i<allMsgs.data.messageData.length;i++)
+//             await showmsg(allMsgs.data.messageData[i]);
        
-     }
-     catch(error){
-         console.log(error);
-     };
-}
+//      }
+//      catch(error){
+//          console.log(error);
+//      };
+// }
 window.addEventListener("DOMContentLoaded",async()=>{
     const token=localStorage.getItem('token');
-    // const allMsgs=await axios.get(`http://13.49.238.207:3100/message/get-message?lastMsgID=0`);
-    // const msgString=JSON.stringify(allMsgs.data.messageData);
-    // localStorage.setItem('msgs',msgString);
-    // for(var i=0;i<allMsgs.data.messageData.length;i++)
-    //         await showmsg(allMsgs.data.messageData[i]);
+    const decodedtoken=parseJwt (token);
+    socket.emit('new-user',{userId:decodedtoken.userId,message:'joined'});  
     
     const response=await axios.get("http://localhost:3100/group/get-group",{headers:{"Authorization":token}});
-    // console.log(response);
     for(var i=0;i<response.data.groupData.length;i++)
             await showgrps(response.data.groupData[i]);
-
-    // setInterval(getmessages,1000);   
+            
  })
 
  
@@ -102,6 +109,7 @@ async function formSubmit(e){
             msgStringArray=JSON.stringify(response.data.messageData);
             localStorage.setItem('msgs',msgStringArray);
         }
+        socket.emit('send-chat-message', {message:messageData,userId:response.data.messageData.userId,groupId:response.data.messageData.groupId});
         showmsg(response.data.messageData);
     }
     catch(err){
@@ -139,12 +147,10 @@ async function AddGroup(e){
     const token=localStorage.getItem('token');
     addGroupDisplay.style.display='none';
     const groupName=e.target.grpname.value;
-    // const email=e.target.email.value; 
     let obj={
         groupName
     }
     const response=await axios.post("http://localhost:3100/group/add-group",obj,{headers:{"Authorization":token}});
-    // console.log(response.data.groupData);
     showgrps(response.data.groupData);
     
 }
@@ -188,7 +194,6 @@ async function showgrps(myobj){
                 const phoneNo=e.target.PhoneNo.value;
                 const gId=localStorage.getItem('groupId');
                 e.target.PhoneNo.value="";
-                // console.log(phoneNo);
                 const addMember=await axios.get(`http://localhost:3100/group/add-user?phoneNo=${phoneNo}&groupId=${gId}`);
                 memberForm.innerHTML+=`<h5 class="text-center" style="color:green;">User Added</h5>`
                 setTimeout(()=>{
@@ -216,7 +221,6 @@ async function showgrps(myobj){
                 memberList.innerHTML='';
                 for(var i=0;i<grpMembers.data.members.length;i++)
                     await showMembers(grpMembers.data.members[i]);
-                // console.log(grpMembers);
             }
             catch(err){
                 console.log(err);
@@ -224,7 +228,6 @@ async function showgrps(myobj){
         })        
         addMemberbtn.addEventListener('click',async function(){
             try{
-
                 memberForm.setAttribute("style", "display:block;");
             }
             catch(err){
@@ -247,7 +250,6 @@ async function showMembers(obj){
         const token=localStorage.getItem('token');
         const decodedtoken=parseJwt (token);
         const gId=localStorage.getItem('groupId');
-        // console.log(decodedtoken);
         const isAdmin=await axios.get(`http://localhost:3100/group/isAdmin?userId=${decodedtoken.userId}&groupId=${gId}`);
         if(isAdmin.data.Data.isAdmin){
 
@@ -288,6 +290,26 @@ async function showMembers(obj){
         }
         memberList.appendChild(addNewelem);
     }
+    catch(error){
+        console.log(error)
+    };
+}
+
+const file=document.getElementById('myfile');
+const formData = new FormData();
+
+async function uploadfiles(e){
+    try{
+        e.preventDefault();
+        const gId=localStorage.getItem('groupId')
+        const token=localStorage.getItem('token');
+        const decodedtoken=parseJwt (token);
+        formData.append("file", file.files[0]);
+        const addfile=await axios.post(`http://localhost:3100/file/uploadfiles?groupId=${gId}&userId=${decodedtoken.userId}`,formData);
+        console.log(addfile.data.fileData);
+        socket.emit('send-chat-message', addfile.data.messageData );
+        showmsg(addfile.data.messageData);
+    }  
     catch(error){
         console.log(error)
     };
