@@ -17,7 +17,7 @@ const path = require('path');
             acl: "public-read",
             bucket: BUCKET,
             key: function (req, file, cb) {
-                // console.log(file);
+                 console.log(file);
                 cb(null, `${Date.now()}${path.extname(file.originalname)}`)
             }
         })

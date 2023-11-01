@@ -1,12 +1,13 @@
-const chatList=document.getElementById('chatList');
-const groupList=document.getElementById('groupList');
-const memberList=document.getElementById('memberList');
-const addGroupBtn=document.getElementById('groupBtn');
-const messageInput=document.getElementById('Dataform');
-const fileInput=document.getElementById('fileform');
-const addGroupDisplay=document.getElementById('addgrp');
-
+const chatList = document.getElementById('chatList');
+const groupList = document.getElementById('groupList');
+const memberList = document.getElementById('memberList');
+const addGroupBtn = document.getElementById('groupBtn');
+const messageInput = document.getElementById('Dataform');
+const fileInput = document.getElementById('fileform');
+const addGroupDisplay = document.getElementById('addgrp');
 const socket=io('http://localhost:3100');
+
+
 
 socket.on('chat-message', data => {
     const gId=localStorage.getItem('groupId');
@@ -51,7 +52,7 @@ function parseJwt (token) {
 //                 msgId=element.id;
 //              }); 
 //         } 
-//         const allMsgs=await axios.get(`http://localhost:3100/message/get-message?lastMsgID=${msgId}`);
+//         const allMsgs=await axios.get(`http://13.49.238.207:3100/message/get-message?lastMsgID=${msgId}`);
 //         if(parsedMsgs.length>0 && allMsgs.data.messageData.length>0){
 //             mergedArrays=parsedMsgs.concat(allMsgs.data.messageData);
 //         }
@@ -303,8 +304,9 @@ async function uploadfiles(e){
         e.preventDefault();
         const gId=localStorage.getItem('groupId')
         const token=localStorage.getItem('token');
-        const decodedtoken=parseJwt (token);
+        const decodedtoken=parseJwt(token);
         formData.append("file", file.files[0]);
+        console.log(formData.get("file"));
         const addfile=await axios.post(`http://localhost:3100/file/uploadfiles?groupId=${gId}&userId=${decodedtoken.userId}`,formData);
         console.log(addfile.data.fileData);
         socket.emit('send-chat-message', addfile.data.messageData );
@@ -314,3 +316,4 @@ async function uploadfiles(e){
         console.log(error)
     };
 }
+

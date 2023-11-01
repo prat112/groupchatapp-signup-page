@@ -4,6 +4,7 @@ exports.uploads=async(req,res,next)=>{
     try{
         const groupId=req.query.groupId;
         const userId=req.query.userId;
+        console.log(req.file.location);
         const data= await messageModel.create({message:req.file.location,userId:userId,groupId:groupId});
         console.log('Successfully uploaded ' + req.file.location + ' location!');
         res.status(201).json({messageData:data,fileData:req.file.location,success:true});

@@ -65,7 +65,7 @@ sequelize
         .sync()
     // .sync({force:true})
     .then(()=>{
-      server.listen(process.env.PORT);
+      server.listen(3100);
       
       io.on('connection', socket => {
         socket.on('new-user', data => {
